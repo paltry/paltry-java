@@ -23,7 +23,6 @@ Param(
   [string]$EclipseFormatterPath
 )
 Set-PSDebug -Trace 0
-Add-Type -Assembly "System.IO.Compression.FileSystem"
 $CurrentFolder = $PWD
 $UserProfile = $Env:USERPROFILE
 $DownloadsFolder = "$UserProfile\Downloads"
@@ -94,7 +93,7 @@ Function InstallTool($Name, $Url, $Prefix) {
     }
     Log-Info "Extracting $Name..."
     Remove-Item -Recurse -ErrorAction Ignore $ExtractedFolder
-    [System.IO.Compression.ZipFile]::ExtractToDirectory($DownloadedFile, $ExtractedFolder)
+    7z x "$DownloadedFile" -o"$ExtractedFolder" | Out-Null
     $ExtractedContents = Get-ChildItem $ExtractedFolder
     if($ExtractedContents.Length -eq 1 -And $ExtractedContents[0].PSIsContainer) {
       Move-Item $ExtractedContents[0].FullName $InstalledFolder
@@ -233,7 +232,7 @@ Function SetupMavenSettings {
       <settingsSecurity>
         <master>$EncryptedMasterPassword</master>
       </settingsSecurity>
-      "@ | Out-File $MavenSecuritySettings
+      "@ | Out-File-Force $MavenSecuritySettings
     }
     if(!(Test-Path $MavenSettings)) {
       Log-Info "Encrypting Server Passwords For Maven..."
@@ -257,7 +256,7 @@ Function SetupMavenSettings {
           </servers>
         </settings>
         "@
-      } | Out-File $MavenSettings
+      } | Out-File-Force $MavenSettings
     }
   }
 }
@@ -408,10 +407,11 @@ Function SetupEclipseWorkspace {
   }
 }
 
+Install7Zip
+
 InstallGit
 CloneRepos
 
-Install7Zip
 InstallJdk
 InstallMaven
 SetupMavenSettings
