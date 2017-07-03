@@ -404,6 +404,9 @@ Function SetupEclipseWorkspace {
     @"
     org.eclipse.ui.commands=<?xml version\="1.0" encoding\="UTF-8"?>\r\n<org.eclipse.ui.commands>\r\n<keyBinding commandId\="org.eclipse.m2e.core.pomFileAction.run" contextId\="org.eclipse.ui.contexts.window" keyConfigurationId\="org.eclipse.ui.defaultAcceleratorConfiguration" keySequence\="CTRL+SHIFT+B"/>\r\n<keyBinding contextId\="org.eclipse.ui.contexts.window" keyConfigurationId\="org.eclipse.ui.defaultAcceleratorConfiguration" keySequence\="ALT+SHIFT+X M"/>\r\n<keyBinding contextId\="org.eclipse.ui.contexts.window" keyConfigurationId\="org.eclipse.ui.defaultAcceleratorConfiguration" keySequence\="CTRL+SHIFT+B"/>\r\n<keyBinding commandId\="org.eclipse.debug.ui.commands.ToggleBreakpoint" contextId\="org.eclipse.ui.contexts.window" keyConfigurationId\="org.eclipse.ui.defaultAcceleratorConfiguration" keySequence\="SHIFT+B"/>\r\n</org.eclipse.ui.commands>
     "@ | Out-File-Force "$EclipseWorkspace\.metadata\.plugins\org.eclipse.core.runtime\.settings\org.eclipse.ui.workbench.prefs"
+    @"
+    Console.limitConsoleOutput=false
+    "@ | Out-File-Force "$EclipseWorkspace\.metadata\.plugins\org.eclipse.core.runtime\.settings\org.eclipse.debug.ui.prefs"
   }
 }
 
