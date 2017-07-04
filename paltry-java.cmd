@@ -34,8 +34,6 @@ $MavenSettings = "$MavenUserFolder\settings.xml"
 $MavenSecuritySettings = "$MavenUserFolder\settings-security.xml"
 $MavenRepo = "$MavenUserFolder\repository"
 $EclipseFormatterFullPath = "$CurrentFolder\$EclipseFormatterPath"
-$WebClient = New-Object System.Net.WebClient
-$WebClient.Headers.Add("User-Agent", "PowerShell")
 $Online = Test-Connection -ComputerName 8.8.8.8 -Quiet -ErrorAction Ignore
 New-Item -ItemType Directory -Force -Path $DownloadsFolder | Out-Null
 New-Item -ItemType Directory -Force -Path $TempFolder | Out-Null
@@ -66,6 +64,22 @@ Function Require-Online {
   }
 }
 
+Function Get-WebClient {
+  $WebClient = New-Object System.Net.WebClient
+  $WebClient.Headers.Add("User-Agent", "PowerShell")
+  return $WebClient
+}
+
+Function DownloadString($Url) {
+  $WebClient = Get-WebClient
+  return $WebClient.DownloadString($Url)
+}
+
+Function DownloadFile($Url, $Path) {
+  $WebClient = Get-WebClient
+  return $WebClient.DownloadFile($Url, $Path)
+}
+
 Function InstallTool($Name, $Url, $Prefix) {
   if($Online) {
     $ToolFile = $Url.Split("/") | Select-Object -Last 1
@@ -89,7 +103,7 @@ Function InstallTool($Name, $Url, $Prefix) {
     if(!(Test-Path $DownloadedFile)) {
       Require-Online
       Log-Info "Downloading $Name..."
-      $WebClient.DownloadFile($Url, $DownloadedFile)
+      DownloadFile $Url $DownloadedFile
     }
     Log-Info "Extracting $Name..."
     Remove-Item -Recurse -ErrorAction Ignore $ExtractedFolder
@@ -111,7 +125,7 @@ Function InstallTool($Name, $Url, $Prefix) {
 Function InstallGit {
   $GitReleaseApiUrl = "https://api.github.com/repos/git-for-windows/git/releases/latest"
   if($Online) {
-    $MinGitRelease = $WebClient.DownloadString($GitReleaseApiUrl) | ConvertFrom-Json |
+    $MinGitRelease = DownloadString $GitReleaseApiUrl | ConvertFrom-Json |
       Select -Expand assets | Where-Object { $_.name -Match "MinGit.*64-bit.zip" }
   }
   $MinGitUrl = $MinGitRelease.browser_download_url
@@ -154,7 +168,7 @@ Function Install7Zip {
     if(!(Test-Path $7ZipInstallerFile)) {
       Require-Online
       Log-Info "Downloading 7-Zip..."
-      $WebClient.DownloadFile($7ZipUrl, $7ZipInstallerFile)
+      DownloadFile $7ZipUrl $7ZipInstallerFile
     }
     Log-Info "Extracting 7-Zip..."
     msiexec /a "$7ZipInstallerFile" TARGETDIR="$7ZipInstallerFolder" /qn | Out-Null
@@ -166,7 +180,7 @@ Function Install7Zip {
 
 Function InstallJdk {
   if($Online) {
-    $JdkUrl = $WebClient.DownloadString("https://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html") |
+    $JdkUrl = DownloadString "https://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html" |
       %{ ([regex]'http.+-windows-x64.exe').Matches($_) | %{ $_.Value } }
     $JceUrl = "http://download.oracle.com/otn-pub/java/jce/8/jce_policy-8.zip"
     $JdkFile = $JdkUrl.Split("/") | Select-Object -Last 1
@@ -179,10 +193,10 @@ Function InstallJdk {
       if(!(Test-Path $JdkInstallerFile)) {
         Require-Online
         Log-Info "Downloading JDK..."
+        $WebClient = Get-WebClient
         $WebClient.Headers.Set("Cookie", "oraclelicense=accept-securebackup-cookie")
         $WebClient.DownloadFile($JdkUrl, $JdkInstallerFile)
         $WebClient.DownloadFile($JceUrl, $JceFile)
-        $WebClient.Headers.Remove("Cookie")
       }
       Log-Info "Extracting JDK..."
       Remove-Item -Recurse -Force -ErrorAction Ignore $JdkInstallerFolder
