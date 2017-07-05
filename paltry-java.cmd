@@ -412,7 +412,7 @@ Function SetupEclipseWorkspace {
       <booleanAttribute key="M2_UPDATE_SNAPSHOTS" value="false"/>
       <stringAttribute key="M2_USER_SETTINGS" value=""/>
       <booleanAttribute key="M2_WORKSPACE_RESOLUTION" value="false"/>
-      <stringAttribute key="org.eclipse.jdt.launching.WORKING_DIRECTORY" value="${project_loc}"/>
+      <stringAttribute key="org.eclipse.jdt.launching.WORKING_DIRECTORY" value="`${project_loc}"/>
     </launchConfiguration>
     "@ | Out-File-Force "$EclipseWorkspace\.metadata\.plugins\org.eclipse.debug.core\.launches\Clean Install Current Project.launch"
     @"
