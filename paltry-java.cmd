@@ -5,6 +5,7 @@ set SSH_REPOS=" "
 set HTTPS_REPOS="https://github.com/jitpack/maven-simple.git"
 set MAVEN_SERVER_IDS=" "
 set ECLIPSE_FORMATTER_PATH=" "
+set OPTIONAL_TOOLS=" "
 
 set TMP_SCRIPT="%TMP%\%~n0.ps1"
 for /f "delims=:" %%a in ('findstr -n "^___" %0') do set "Line=%%a"
@@ -12,7 +13,7 @@ for /f "delims=:" %%a in ('findstr -n "^___" %0') do set "Line=%%a"
 
 powershell -ExecutionPolicy RemoteSigned -File %TMP_SCRIPT% ^
   -SshRepos "%SSH_REPOS%" -HttpsRepos "%HTTPS_REPOS%" -MavenServerIds "%MAVEN_SERVER_IDS%" ^
-  -EclipseFormatterPath "%ECLIPSE_FORMATTER_PATH%"
+  -EclipseFormatterPath "%ECLIPSE_FORMATTER_PATH%" -OptionalTools "%OPTIONAL_TOOLS%"
 exit
 
 ___SCRIPT___
@@ -20,7 +21,8 @@ Param(
   [string]$SshRepos,
   [string]$HttpsRepos,
   [string]$MavenServerIds,
-  [string]$EclipseFormatterPath
+  [string]$EclipseFormatterPath,
+  [string]$OptionalTools
 )
 Set-PSDebug -Trace 0
 $CurrentFolder = $PWD
@@ -80,6 +82,17 @@ Function DownloadFile($Url, $Path) {
   return $WebClient.DownloadFile($Url, $Path)
 }
 
+Function FindTool($Prefix) {
+  return Get-ChildItem $ToolsFolder -Filter $Prefix |
+    Sort-Object Name -Descending | Select-Object -First 1 | %{ $_.FullName }
+}
+
+Function AddToPath($ParentFolder) {
+  $BinFolder = Get-ChildItem -Recurse "$ParentFolder" -Include @("*.exe", "*.cmd") |
+    Sort-Object FullName | Select-Object -First 1 | %{ $_.Directory.FullName }
+  $Env:Path = "$BinFolder;$Env:Path"
+}
+
 Function InstallTool($Name, $Url, $Prefix) {
   if($Online) {
     $ToolFile = $Url.Split("/") | Select-Object -Last 1
@@ -93,8 +106,7 @@ Function InstallTool($Name, $Url, $Prefix) {
     $ExtractedFolder = "$TempFolder\$Name"
     $InstalledFolder = "$ToolsFolder\$ToolFolder"
   } else {
-    $InstalledFolder = Get-ChildItem $ToolsFolder -Filter $Prefix |
-      Sort-Object Name -Descending | Select-Object -First 1 | %{ $_.FullName }
+    $InstalledFolder = FindTool $Prefix
     if(!$InstalledFolder) {
       Require-Online
     }
@@ -117,9 +129,7 @@ Function InstallTool($Name, $Url, $Prefix) {
     }
   }
 
-  $ToolBinFolder = Get-ChildItem -Recurse "$InstalledFolder" -Include @("*.exe", "*.cmd") |
-    Sort-Object FullName | Select-Object -First 1 | %{ $_.Directory.FullName }
-  $Env:Path = "$ToolBinFolder;$Env:Path"
+  AddToPath $InstalledFolder
 }
 
 Function InstallGit {
@@ -283,6 +293,17 @@ Function CleanupMavenRepo {
   }
 }
 
+Function InstallOptionalTools {
+  if($OptionalTools) {
+    $OptionalTools.Split(",") | %{
+      $ToolFolder = FindTool $_
+      if($ToolFolder -And (Test-Path $ToolFolder)) {
+        AddToPath $ToolFolder
+      }
+    }
+  }
+}
+
 Function InstallEclipse {
   if($Online) {
     $EclipseDownloadUrl = Invoke-WebRequest -Uri "https://www.eclipse.org/downloads/eclipse-packages" |
@@ -433,6 +454,8 @@ InstallJdk
 InstallMaven
 SetupMavenSettings
 CleanupMavenRepo
+
+InstallOptionalTools
 
 InstallEclipse
 SetupEclipseWorkspace
